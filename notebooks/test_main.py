@@ -1,5 +1,5 @@
 import pytest
-from main import train, predict
+from main import train, predict, split_f, preprocess
 from submain import rm_punc, rm_stopwords
 import os
 import errno
@@ -33,6 +33,17 @@ def test_predict(capsys):
     data = rm_punc(rm_stopwords(data))
     assert captured.out in [data + " " + str(i) + "\n" for i in range(1, 6)]
     os.remove(model)
+
+def test_split_f(): # special ^)
+    X, y = preprocess("../data/singapore_airlines_reviews.csv")
+    split_factor = 0.2
+    X_train, X_test, y_train, y_test = split_f(X, y, split_factor, 42)
+    assert abs(X_test.shape[0] / (X_test.shape[0] + X_train.shape[0]) - split_factor) < 1e-5
+
+def test_punctuation_func():
+    text = "Ab.,.c!"
+    assert rm_punc(text) == "abc"
+
 
 if __name__ == "__main__":
     pytest.main()

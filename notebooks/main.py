@@ -8,6 +8,18 @@ from submain import *
 def main():
     pass
 
+def split_f(X, y, split, rs):
+    return train_test_split(X, y, test_size=split, random_state=rs)
+
+def preprocess(data):
+    df = pd.read_csv(data)
+    df['title_text'] = (df['title'] + ' '  + df['text']).apply(rm_punc)
+    df['clean'] = df['title_text'].apply(rm_stopwords)
+    df['clean'] = df['clean'].apply(func)
+    X = df.clean
+    y = df.rating
+    return X, y
+
 @click.command()
 @click.option('--data', required=True, help="Data to train on.")
 @click.option('--model', required=True, help="Path to save model to")
@@ -17,24 +29,21 @@ def train(data, model, test=None, split=None):
     print('You called train function')
     assert not (test and split), "train and split shouldn't be specified together"
     if not os.path.exists(data):
-         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), data)
-    
-    df = pd.read_csv(data)
-    df['title_text'] = (df['title'] + ' '  + df['text']).apply(rm_punc)
-    df['clean'] = df['title_text'].apply(rm_stopwords)
-    df['clean'] = df['clean'].apply(func)
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), data)
+
+    X, y = preprocess(data)
 
     svc = SVC()
     vectorizer = TfidfVectorizer()
 
-    X = df.clean
-    y = df.rating
+
 
     x_test = y_test = None
     
     if split:
         assert 0 <= split <= 1, "split size should be between 0 and 1"
-        x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=split, random_state=RANDOM_STATE)
+        x_train, x_test, y_train, y_test = split_f(X, y, split, RANDOM_STATE)
+        print(f"data was splitted into sizes of {x_train.shape[0]} train and {x_test.shape[0]} test")
         x_train = vectorizer.fit_transform(x_train)
         x_test = vectorizer.transform(x_test)
         svc.fit(x_train, y_train)
